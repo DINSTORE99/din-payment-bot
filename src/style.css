@@ -376,3 +376,42 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   .footer-links { justify-content: center; }
   .footer p { text-align: center; }
 }
+.auth-logo {
+  margin-bottom: 18px;
+}
+
+.login-error {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border: 1px solid #5a2929;
+  border-radius: 9px;
+  background: #1b0d0d;
+  color: #ff9b9b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.login-info {
+  display: grid;
+  gap: 8px;
+  color: #707070;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.back-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.spin {
+  animation: dinpay-spin 1s linear infinite;
+}
+
+@keyframes dinpay-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
