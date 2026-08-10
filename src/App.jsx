@@ -1,11 +1,14 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+
 import Home from "./pages/Home";
+import Products from "./pages/Products";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import Payment from "./pages/Payment";
-import History from "./pages/History";
+import Checkout from "./pages/Checkout";
+import Orders from "./pages/Orders";
 
 export default function App() {
   return (
@@ -15,11 +18,16 @@ export default function App() {
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/products" element={<Products />} />
           <Route path="/login" element={<Login />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/payment" element={<Payment />} />
-          <Route path="/history" element={<History />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/orders" element={<Orders />} />
+
+          <Route
+            path="*"
+            element={<Navigate to="/" replace />}
+          />
         </Routes>
       </main>
 
