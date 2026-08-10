@@ -9,7 +9,6 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Checkout from "./pages/Checkout";
 import Orders from "./pages/Orders";
-
 export default function App() {
   return (
     <div className="app-shell">
