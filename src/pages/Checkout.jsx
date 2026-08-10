@@ -1,74 +1,144 @@
-import {
-  ArrowLeft,
-  CreditCard,
-  ShieldCheck,
-} from "lucide-react";
+import { useState } from "react";
+import { CreditCard, Loader2, ShieldCheck, AlertCircle } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
 
-import {
-  Link,
-  useSearchParams,
-} from "react-router-dom";
-
-const products = {
-  "ssh-sg-7": {
+const PRODUCTS = {
+  ssh-singapore: {
     name: "SSH Singapore",
-    duration: "7 Hari",
+    description: "Server Singapore • 7 Hari",
     price: 5000,
-    location: "Singapore",
   },
-
-  "ssh-sg-30": {
-    name: "SSH Singapore",
-    duration: "30 Hari",
-    price: 15000,
-    location: "Singapore",
-  },
-
-  "ssh-id-30": {
+  ssh-indonesia: {
     name: "SSH Indonesia",
-    duration: "30 Hari",
-    price: 20000,
-    location: "Indonesia",
-  },
-
-  "vless-sg-30": {
-    name: "VLESS Singapore",
-    duration: "30 Hari",
-    price: 20000,
-    location: "Singapore",
+    description: "Server Indonesia • 7 Hari",
+    price: 5000,
   },
 };
 
-function rupiah(value) {
-  return new Intl.NumberFormat(
-    "id-ID"
-  ).format(value);
+function formatRupiah(value) {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 export default function Checkout() {
-  const [params] =
-    useSearchParams();
+  const [searchParams] = useSearchParams();
 
-  const productId =
-    params.get("product");
+  const productId = searchParams.get("product");
+  const product = PRODUCTS[productId] || PRODUCTS["ssh-singapore"];
 
-  const product =
-    products[productId];
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [payment, setPayment] = useState(null);
 
-  if (!product) {
+  async function handlePayment() {
+    if (loading) return;
+
+    setLoading(true);
+    setError("");
+    setPayment(null);
+
+    try {
+      const response = await fetch("/api/qris/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: product.price,
+          description: `Pembelian ${product.name}`,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || "Gagal membuat pembayaran QRIS."
+        );
+      }
+
+      setPayment(result.data);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Gagal membuat pembayaran.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (payment) {
     return (
       <section className="container section">
-        <div className="empty-card">
-          <h2>
-            Produk tidak ditemukan
-          </h2>
+        <div className="page-title">
+          <span className="eyebrow">PEMBAYARAN</span>
+          <h1>Scan QRIS</h1>
+          <p>Selesaikan pembayaran untuk melanjutkan pesanan.</p>
+        </div>
 
-          <Link
-            to="/products"
-            className="primary-button"
+        <div className="form-card qr-result-card">
+          <h2>{product.name}</h2>
+
+          <p className="muted">
+            Total pembayaran
+          </p>
+
+          <h1>
+            {formatRupiah(
+              payment.total_amount || payment.amount
+            )}
+          </h1>
+
+          {payment.qris_url && (
+            <div className="qr-box">
+              <img
+                src={payment.qris_url}
+                alt="QRIS Pembayaran"
+                width="260"
+                height="260"
+              />
+            </div>
+          )}
+
+          <div className="payment-details">
+            <div>
+              <span>Transaction ID</span>
+              <strong>{payment.transaction_id}</strong>
+            </div>
+
+            <div>
+              <span>Status</span>
+              <strong>{payment.status || "pending"}</strong>
+            </div>
+
+            {payment.expired_at && (
+              <div>
+                <span>Kadaluarsa</span>
+                <strong>{payment.expired_at}</strong>
+              </div>
+            )}
+          </div>
+
+          {payment.qris_url && (
+            <a
+              href={payment.qris_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="primary-button full"
+            >
+              Buka QRIS
+            </a>
+          )}
+
+          <button
+            type="button"
+            className="secondary-button full"
+            onClick={() => setPayment(null)}
           >
-            Kembali ke produk
-          </Link>
+            Kembali
+          </button>
         </div>
       </section>
     );
@@ -76,110 +146,56 @@ export default function Checkout() {
 
   return (
     <section className="container section">
-
       <div className="page-title">
-
-        <Link
-          to="/products"
-          className="back-link"
-        >
-          <ArrowLeft size={15} />
-          Kembali ke produk
+        <Link to="/" className="back-link">
+          ← Kembali
         </Link>
 
-        <span className="eyebrow">
-          CHECKOUT
-        </span>
+        <span className="eyebrow">CHECKOUT</span>
 
-        <h1>
-          Konfirmasi pembelian
-        </h1>
-
+        <h1>Konfirmasi pembelian</h1>
       </div>
 
-      <div className="checkout-grid">
+      <div className="form-card">
+        <h2>{product.name}</h2>
 
-        <div className="form-card">
+        <p className="muted">
+          {product.description}
+        </p>
 
-          <h2>
-            {product.name}
-          </h2>
+        <h1>{formatRupiah(product.price)}</h1>
 
-          <p className="muted">
-            Server {product.location}
-            {" • "}
-            {product.duration}
-          </p>
-
-          <div className="checkout-price">
-            Rp {rupiah(product.price)}
+        {error && (
+          <div className="login-error">
+            <AlertCircle size={18} />
+            <span>{error}</span>
           </div>
+        )}
 
-          <button
-            className="primary-button full"
-            type="button"
-            disabled
-          >
-            <CreditCard size={18} />
-            Buat Pembayaran
-          </button>
+        <button
+          type="button"
+          className="primary-button full"
+          onClick={handlePayment}
+          disabled={loading}
+        >
+          {loading ? (
+            <>
+              <Loader2 size={18} className="spin" />
+              Membuat Pembayaran...
+            </>
+          ) : (
+            <>
+              <CreditCard size={18} />
+              Buat Pembayaran
+            </>
+          )}
+        </button>
 
-          <div className="secure-note">
-            <ShieldCheck size={17} />
-
-            Pembayaran QRIS akan
-            diproses melalui backend
-            DIN STORE.
-          </div>
-
+        <div className="secure-note">
+          <ShieldCheck size={17} />
+          Pembayaran QRIS diproses melalui backend DIN STORE.
         </div>
-
-        <div className="content-card">
-
-          <span className="eyebrow">
-            ORDER
-          </span>
-
-          <h2>
-            Detail Pesanan
-          </h2>
-
-          <div className="order-summary">
-
-            <div>
-              <span>Produk</span>
-              <strong>
-                {product.name}
-              </strong>
-            </div>
-
-            <div>
-              <span>Masa aktif</span>
-              <strong>
-                {product.duration}
-              </strong>
-            </div>
-
-            <div>
-              <span>Server</span>
-              <strong>
-                {product.location}
-              </strong>
-            </div>
-
-            <div>
-              <span>Total</span>
-              <strong>
-                Rp {rupiah(product.price)}
-              </strong>
-            </div>
-
-          </div>
-
-        </div>
-
       </div>
-
     </section>
   );
 }
