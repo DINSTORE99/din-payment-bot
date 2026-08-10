@@ -1,15 +1,26 @@
 export default async function handler(req, res) {
+  // Tes GET dari browser
+  if (req.method === "GET") {
+    return res.status(200).json({
+      success: true,
+      message: "QRIS API aktif. Gunakan POST untuk membuat QRIS.",
+    });
+  }
+
+  // Hanya POST untuk membuat transaksi
   if (req.method !== "POST") {
     return res.status(405).json({
       success: false,
-      message: "Method tidak diizinkan",
+      message: "Method tidak diizinkan.",
     });
   }
 
   try {
-    const { amount, description } = req.body;
+    const { amount, description } = req.body || {};
 
-    if (!amount || Number(amount) < 1000) {
+    const numericAmount = Number(amount);
+
+    if (!numericAmount || numericAmount < 1000) {
       return res.status(400).json({
         success: false,
         message: "Nominal minimal Rp 1.000.",
@@ -21,26 +32,33 @@ export default async function handler(req, res) {
     if (!apiKey) {
       return res.status(500).json({
         success: false,
-        message: "QRIS API Key belum dikonfigurasi di Vercel.",
+        message: "QRIS_API_KEY belum diatur di Vercel.",
       });
     }
 
-    const url =
+    const qrisUrl =
       "https://qris.adijayavpn.cloud/api/deposit";
 
     const params = new URLSearchParams({
-      amount: String(Number(amount)),
+      amount: String(numericAmount),
       apikey: apiKey,
     });
 
-    const response = await fetch(`${url}?${params.toString()}`);
+    const response = await fetch(
+      `${qrisUrl}?${params.toString()}`,
+      {
+        method: "GET",
+      }
+    );
 
     const result = await response.json();
 
     if (!response.ok || result.status !== "success") {
       return res.status(400).json({
         success: false,
-        message: result.message || "Gagal membuat QRIS.",
+        message:
+          result.message ||
+          "API QRIS gagal membuat transaksi.",
         data: result,
       });
     }
@@ -49,7 +67,8 @@ export default async function handler(req, res) {
       success: true,
       data: {
         ...result.data,
-        description: description || "DIN PAY",
+        description:
+          description || "Pembayaran DIN PAY",
       },
     });
   } catch (error) {
@@ -57,7 +76,9 @@ export default async function handler(req, res) {
 
     return res.status(500).json({
       success: false,
-      message: "Server gagal membuat QRIS.",
+      message:
+        error?.message ||
+        "Terjadi kesalahan pada server QRIS.",
     });
   }
 }
